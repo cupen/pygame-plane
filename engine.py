@@ -1,12 +1,12 @@
 # coding:utf-8
-__author__ = 'cupen'
+import event
 import random
-from pygame.constants import USEREVENT
 import pygame
-import resource
+from resource import Assets
 from sprites import Background, Bullet, Enemy
 
-ENEMY_REFRESH = USEREVENT + 1
+
+__author__ = 'cupen'
 
 class GameEngine:
     STATUS_RUNNING = 0
@@ -16,18 +16,47 @@ class GameEngine:
     def __init__(self):
         pygame.init()
         self.__listener = {}
+        self.__userEventDict = {}
+        self.__userEventCode = 0
         self.__status = GameEngine.STATUS_RUNNING
         self.planeGroup = pygame.sprite.Group()
         self.bulletGroup = pygame.sprite.Group()
         self.background = None
         self.screen = None
-        self.srcLoader = resource
-        self.__spriteGroups = (self.planeGroup, self.bulletGroup)
         self.player = None
+        self.__spriteGroups = (self.planeGroup, self.bulletGroup)
         pass
 
-    def set_enemy_count_per_seconds(self, count):
-        pygame.time.set_timer(ENEMY_REFRESH, int(1000 / count))
+    def addTimer(self, delay, callback):
+        if self.__userEventCode == 0:
+            self.__userEventCode = event.TIMER[0]
+        else:
+            self.__userEventCode += 1
+
+        if self.__userEventCode > event.TIMER[1]:
+                raise Exception("Invalide anonymity userevent:%s"%self.__userEventCode)
+
+        self.__userEventDict[self.__userEventCode] = callback
+        pygame.time.set_timer(self.__userEventCode, delay)
+        pass
+
+    def setEnemyCountPerSeconds(self, count):
+        self.addTimer(
+            int(1000 / count),
+            lambda :self.refresh_enemy()
+        )
+        pass
+
+    def setPlayerBulletCountPerSeconds(self, count = 1):
+        self.addTimer(
+            int(1000 / count),
+            lambda :self.bulletGroup.add(
+                self.player.create_bullet(
+                    Assets.loadImage("plane.png#bullet_0"),
+                    self.screen.get_rect()
+                )
+            )
+        )
         pass
 
     def add_player(self, plane):
@@ -43,31 +72,28 @@ class GameEngine:
 
     def handle_event(self, e):
         if e.key == pygame.K_j:
-            bullet = self.player.create_bullet(self.srcLoader.getSurface("bullet_0"), self.screen.get_rect())
+            image = Assets.loadImage("plane.png#bullet_0")
+            bullet = self.player.create_bullet(image, self.screen.get_rect())
             self.bulletGroup.add(bullet)
         pass
 
     def set_background(self, imageNameList, width, height):
         self.screen = pygame.display.set_mode((width, height))
-        resource.load()
-        pygame.display.set_icon(resource.getSurface("icon48x48.png"))
+        pygame.display.set_icon(Assets.loadImage("icon48x48.png"))
         _list = []
         for tmp in imageNameList:
-            image = resource.getSurface(tmp)
+            image = Assets.loadImage(tmp)
             _list.append(image)
         self.background = Background(_list, width=width, height=height)
         self.screen.blit(self.background.image, (self.background.rect.x, self.background.rect.y) )
         pass
 
     def create_sprite(self, imageName, spriteClass = pygame.sprite.Sprite):
-        surface = self.srcLoader.getSurface(imageName)
+        surface = Assets.loadImage(imageName)
         return spriteClass(surface)
 
     def add_plane(self, sprite):
         self.planeGroup.add(sprite)
-        pass
-
-    def add_bullet(self, bullet):
         pass
 
     def play_music(self, musicFile):
@@ -79,7 +105,7 @@ class GameEngine:
         for i in range(30):
             pygame.mixer.music.queue(musicFile)
 
-        pygame.mixer.music.set_endevent(pygame.USEREVENT + 2)
+        pygame.mixer.music.set_endevent(event.MUSIC_IS_STOP)
         pass
 
     def is_stop(self):
@@ -90,9 +116,9 @@ class GameEngine:
 
     def refresh_enemy(self):
         enemyList = (
-            self.srcLoader.getSurface("enemy_b"),
-            self.srcLoader.getSurface("enemy_m"),
-            self.srcLoader.getSurface("enemy_s"),
+            Assets.loadImage("plane.png#enemy_b"),
+            Assets.loadImage("plane.png#enemy_m"),
+            Assets.loadImage("plane.png#enemy_s"),
         )
         enemyImage = enemyList[ random.randint(0, len(enemyList) -1) ]
         x = random.randint(0, self.screen.get_width() + enemyImage.get_width() - 1)
@@ -103,7 +129,7 @@ class GameEngine:
 
     def listen_keyboard(self, keyCode, callback):
         if keyCode in self.__listener:
-            print("Dumplicate key:", keyCode)
+            print("Duplicate key:", keyCode)
             return
         self.__listener[keyCode] = callback
         pass
@@ -113,9 +139,9 @@ class GameEngine:
             # print(e)
             if e.type == pygame.QUIT:
                 self.__status = GameEngine.STATUS_STOP
-            if e.type == ENEMY_REFRESH:
-                self.refresh_enemy()
-            if e.type == pygame.USEREVENT + 2:
+            elif event.isTimer(e.type):
+                self.__userEventDict[e.type]()
+            elif e.type == event.MUSIC_IS_STOP:
                 pygame.mixer.music.rewind()
             elif e.type == pygame.KEYDOWN or e.type == pygame.KEYUP:
                 self.call_listener(e)
@@ -133,11 +159,13 @@ class GameEngine:
                 if enemy == self.player:
                     continue
 
-                if not bullet.rect.colliderect(enemy.rect):
+                if not self.screen.get_rect().colliderect(enemy.rect):
+                    enemy.kill()
                     continue
 
-                bullet.kill()
-                enemy.kill()
+                if bullet.rect.colliderect(enemy.rect):
+                    enemy.kill()
+                    bullet.kill()
         pass
 
     def call_listener(self, event):
@@ -150,7 +178,6 @@ class GameEngine:
         return
 
     def run(self, fps = 70):
-        fps = 70
         delayMiliSeconds = int(1000 / fps)
 
         while not self.is_stop():

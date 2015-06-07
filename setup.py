@@ -7,11 +7,11 @@ if sys.platform == "win32":
     base = "Win32GUI"
 
 project = "pygame-plane"
-version = "0.0.1"
+version = "0.0.2"
 build_exe_options = {}
 build_exe_options["packages"]      = ["pygame"]
 build_exe_options["include_files"] = ["assets/"]
-build_exe_options["excludes"]      = ["tkinter", "socket"]
+build_exe_options["excludes"]      = ["tkinter", "socket", "multiprocessing", "ssl"]
 
 setup(
     name=project,

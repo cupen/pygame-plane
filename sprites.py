@@ -1,4 +1,6 @@
 # coding:utf-8
+from util import merge_image
+
 __author__ = 'cupen'
 import pygame
 from pygame.rect import Rect
@@ -91,19 +93,19 @@ class Plane(AnimalSprite):
                 self.move_right()
         pass
 
-    def move_up(self):
+    def move_up(self, speed = 0):
         self.rect.y -= self.speed
         pass
 
-    def move_down(self):
+    def move_down(self, speed = 0):
         self.rect.y += self.speed
         pass
 
-    def move_left(self):
+    def move_left(self, speed = 0):
         self.rect.x -= self.speed
         pass
 
-    def move_right(self):
+    def move_right(self, speed = 0):
         self.rect.x += self.speed
         pass
 
@@ -176,21 +178,3 @@ class Background(pygame.sprite.Sprite):
         #     self.resetCurImage()
         pass
 
-def merge_image(*images):
-    w = 0
-    h = 0
-    for image in images:
-        w = image.get_width()
-        h += image.get_height()
-
-    bigImage = pygame.Surface((w, h))
-    _y = 0
-    for image in images:
-        _rect = image.get_rect()
-        _rect.x = 0
-        _rect.y = _y
-        _y += image.get_height()
-        print(_rect)
-        bigImage.blit(image, _rect)
-        # pygame.image.save(bigImage, "wokao.png")
-    return bigImage

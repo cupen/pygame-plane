@@ -19,8 +19,6 @@ double click the `lancher.exe` file on Windows.
 ```
 Type w/s/a/d on the keyboard to move plane.
 
-Type j on the keyboard to fire.
-
 # Build a executable file
 [cx-Freeze document](http://cx-freeze.readthedocs.org/en/latest/distutils.html#distutils)
 ```bash
